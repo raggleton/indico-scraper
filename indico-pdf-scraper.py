@@ -107,8 +107,8 @@ def download_file(url, output_filename):
 
 
 def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True):
-    pause = float(pause)
-    if pause <= 1:
+    pause = int(pause)
+    if pause < 1:
         pause = 1
         print("You should be nice to the server, setting pause to 1 second")
 
@@ -131,11 +131,13 @@ def main(in_args):
     parser.add_argument("url",
                         help="Indico event URL")
     parser.add_argument("-f", "--force",
-                        help="Download file even if it already exists", action='store_true')
+                        help="Download file even if it already exists",
+                        action='store_true')
     parser.add_argument("-o", "--output",
                         help="Directory to place files. Defaults to name of Indico event")
     parser.add_argument("--pause",
-                        help="Time to wait between files being downloaded (in seconds)",
+                        help="Time to wait between files being downloaded (in seconds). Default is 1 second.",
+                        default=1,
                         type=int)
     parser.add_argument("-n", "--number",
                         help="Total number of entries to download. -1 is all (default)",
