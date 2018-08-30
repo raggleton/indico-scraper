@@ -4,12 +4,14 @@
 """Script to download all attachments from an Indico event"""
 
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 import os
 import sys
 import argparse
 from time import sleep
 from collections import namedtuple
+import itertools
+import re
 import requests
 import bs4
 
@@ -96,6 +98,56 @@ def default_filename(entry):
     return template.format(**entry._asdict())
 
 
+# needed for sanitizing filenames in restricted mode
+ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
+                        itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUYP', ['ss'],
+                                        'aaaaaa', ['ae'], 'ceeeeiiiionooooooo', ['oe'], 'uuuuuypy')))
+
+
+def sanitize_filename(s, restricted=False, is_id=False):
+    """Sanitizes a string so it could be used as part of a filename.
+    If restricted is set, use a stricter subset of allowed characters.
+    Set is_id if this is not an arbitrary string, but an ID that should be kept
+    if possible.
+
+    TAKEN FROM youtube-dl
+    https://github.com/rg3/youtube-dl/blob/9e21e6d96bed929ba57b8ce775e2a0e29e54dd60/youtube_dl/utils.py
+    """
+    def replace_insane(char):
+        if restricted and char in ACCENT_CHARS:
+            return ACCENT_CHARS[char]
+        if char == '?' or ord(char) < 32 or ord(char) == 127:
+            return ''
+        elif char == '"':
+            return '' if restricted else '\''
+        elif char == ':':
+            return '_-' if restricted else ' -'
+        elif char in '\\/|*<>':
+            return '_'
+        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace()):
+            return '_'
+        if restricted and ord(char) > 127:
+            return '_'
+        return char
+
+    # Handle timestamps
+    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
+    result = ''.join(map(replace_insane, s))
+    if not is_id:
+        while '__' in result:
+            result = result.replace('__', '_')
+        result = result.strip('_')
+        # Common case of "Foreign band name - English song title"
+        if restricted and result.startswith('-_'):
+            result = result[2:]
+        if result.startswith('-'):
+            result = '_' + result[len('-'):]
+        result = result.lstrip('.')
+        if not result:
+            result = '_'
+    return result
+
+
 def download_file(url, output_filename):
     print("Downloading", url, "to", output_filename)
     r = requests.get(url)
@@ -116,7 +168,7 @@ def download_talks(entries, download_dir, filename_generator, pause=5, skip_exis
         os.makedirs(download_dir)
 
     for entry in entries:
-        output_filename = os.path.join(download_dir, filename_generator(entry))
+        output_filename = os.path.join(download_dir, sanitize_filename(filename_generator(entry)))
         # replace extensions with the one from URL
         output_filename = os.path.splitext(output_filename)[0] + os.path.splitext(entry.URL)[1]
         if not os.path.isfile(output_filename) or not skip_existing:
