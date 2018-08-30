@@ -7,6 +7,7 @@
 from __future__ import print_function
 import os
 import sys
+import argparse
 from time import sleep
 from collections import namedtuple
 import requests
@@ -15,6 +16,16 @@ import bs4
 
 # Class to hold info about each talk entry
 TalkEntry = namedtuple("TalkEntry", ["title", "speaker", "affiliation", "URL", "abstract"])
+
+
+def get_soup_from_url(url):
+    # "https://indico.cern.ch/event/662485/timetable/?view=standard"
+    r = requests.get(url)  # use standard view as includes abstract info
+    if r.status_code != requests.codes.ok:
+        print("Could not get Indico page, please check URL")
+        return 1
+    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    return soup
 
 
 def get_entries(soup):
@@ -69,7 +80,7 @@ def download_file(url, output_filename):
             f.write(r.content)
 
 
-def download_talks(entries, download_dir, filename_generator, pause=5):
+def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True):
     pause = float(pause)
     if pause <= 1:
         pause = 1
@@ -82,24 +93,25 @@ def download_talks(entries, download_dir, filename_generator, pause=5):
         output_filename = os.path.join(download_dir, filename_generator(entry))
         # replace extensions with the one from URL
         output_filename = os.path.splitext(output_filename)[0] + os.path.splitext(entry.URL)[1]
-        if not os.path.isfile(output_filename):
+        if not os.path.isfile(output_filename) or not skip_existing:
             download_file(entry.URL, output_filename)
             sleep(pause)  # be nice to the server
         else:
-            print("Skipping", entry.URL, "as already downloaded")
+            print("Skipping", entry.URL, "as already downloaded (use -f to override)")
 
 
 def main(in_args):
-    r = requests.get("https://indico.cern.ch/event/662485/timetable/?view=standard")  # use standard view as includes abstract info
-    if r.status_code != requests.codes.ok:
-        print("Could not get Indico page, please check URL")
-        return 1
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("url", help="Indico event URL")
+    parser.add_argument("-f", "--force", help="Download file even if it already exists", action='store_true')
+    args = parser.parse_args(in_args)
+
+    soup = get_soup_from_url(args.url)
     event_title = soup.title.text.replace("· Indico", "").strip()
     output_dir = event_title
     entries = get_entries(soup)
     print("Found", len(entries), "talks")
-    download_talks(entries[:5], output_dir, default_filename)
+    download_talks(entries[:5], output_dir, default_filename, pause=5, skip_existing=not args.force)
     return 0
 
 
