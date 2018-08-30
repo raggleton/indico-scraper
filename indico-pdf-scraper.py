@@ -47,7 +47,8 @@ def get_entries(soup):
         speaker_tag = entry.find('div', 'speaker-list')
         if speaker_tag:
             speaker_tag = speaker_tag.find('span', "")
-            speaker = speaker_tag.find('span', "").text  # need the blank classname to avoid getting title
+            # need the blank classname to avoid getting title
+            speaker = speaker_tag.find('span', "").text
             affiliation_tag = speaker_tag.find('span', 'affiliation')
             if affiliation_tag:
                 affiliation = affiliation_tag.find('span', 'text').text
@@ -102,8 +103,13 @@ def download_talks(entries, download_dir, filename_generator, pause=5, skip_exis
 
 def main(in_args):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("url", help="Indico event URL")
-    parser.add_argument("-f", "--force", help="Download file even if it already exists", action='store_true')
+    parser.add_argument("url",
+                        help="Indico event URL")
+    parser.add_argument("-f", "--force",
+                        help="Download file even if it already exists", action='store_true')
+    parser.add_argument("--pause",
+                        help="Time to wait between files being downloaded (in seconds)",
+                        type=int)
     args = parser.parse_args(in_args)
 
     soup = get_soup_from_url(args.url)
@@ -111,7 +117,7 @@ def main(in_args):
     output_dir = event_title
     entries = get_entries(soup)
     print("Found", len(entries), "talks")
-    download_talks(entries[:5], output_dir, default_filename, pause=5, skip_existing=not args.force)
+    download_talks(entries[:5], output_dir, default_filename, pause=args.pause, skip_existing=not args.force)
     return 0
 
 
