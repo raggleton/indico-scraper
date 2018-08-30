@@ -107,6 +107,8 @@ def main(in_args):
                         help="Indico event URL")
     parser.add_argument("-f", "--force",
                         help="Download file even if it already exists", action='store_true')
+    parser.add_argument("-o", "--output",
+                        help="Directory to place files. Defaults to name of Indico event")
     parser.add_argument("--pause",
                         help="Time to wait between files being downloaded (in seconds)",
                         type=int)
@@ -118,7 +120,7 @@ def main(in_args):
 
     soup = get_soup_from_url(args.url)
     event_title = soup.title.text.replace("· Indico", "").strip()
-    output_dir = event_title
+    output_dir = args.output if args.output else event_title
     entries = get_entries(soup)
     num_entries = len(entries)
     print("Found", num_entries, "talks")
