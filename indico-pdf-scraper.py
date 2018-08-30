@@ -13,13 +13,38 @@ from collections import namedtuple
 import requests
 import bs4
 
+try:
+    # python3
+    import urllib.parse as urlparse
+except ImportError:
+    # python2
+    import urlparse
+
 
 # Class to hold info about each talk entry
 TalkEntry = namedtuple("TalkEntry", ["title", "speaker", "affiliation", "URL", "abstract"])
 
 
-def get_soup_from_url(url):
+def validate_indico_url(url):
     # "https://indico.cern.ch/event/662485/timetable/?view=standard"
+    url_info = urlparse.urlparse(url)
+    path_parts = url_info.path.split("/")
+    start_ind = path_parts.index("event")
+    parts = path_parts[start_ind:start_ind+2]
+    parts.append("timetable")
+    new_path = "/".join([""]+parts+[""])
+    new_url_info = urlparse.ParseResult(
+        scheme=url_info.scheme,
+        netloc=url_info.netloc,
+        path=new_path,
+        params='',
+        query='view=standard',
+        fragment=''
+    )
+    return new_url_info.geturl()
+
+
+def get_soup_from_url(url):
     r = requests.get(url)  # use standard view as includes abstract info
     if r.status_code != requests.codes.ok:
         print("Could not get Indico page, please check URL")
@@ -118,7 +143,7 @@ def main(in_args):
                         default=-1)
     args = parser.parse_args(in_args)
 
-    soup = get_soup_from_url(args.url)
+    soup = get_soup_from_url(validate_indico_url(args.url))
     event_title = soup.title.text.replace("· Indico", "").strip()
     output_dir = args.output if args.output else event_title
     entries = get_entries(soup)
