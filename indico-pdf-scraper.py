@@ -158,7 +158,7 @@ def download_file(url, output_filename):
             f.write(r.content)
 
 
-def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True):
+def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True, dry_run=False):
     pause = int(pause)
     if pause < 1:
         pause = 1
@@ -195,6 +195,9 @@ def main(in_args):
                         help="Total number of entries to download. -1 is all (default)",
                         type=int,
                         default=-1)
+    parser.add_argument("--dry",
+                        help="Parse event page, print but do not download talk files.",
+                        action='store_true')
     args = parser.parse_args(in_args)
 
     soup = get_soup_from_url(validate_indico_url(args.url))
@@ -208,7 +211,8 @@ def main(in_args):
                    download_dir=output_dir,
                    filename_generator=default_filename,
                    pause=args.pause,
-                   skip_existing=not args.force)
+                   skip_existing=not args.force,
+                   dry_run=args.dry)
     return 0
 
 
