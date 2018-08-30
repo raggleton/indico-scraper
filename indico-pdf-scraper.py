@@ -55,10 +55,10 @@ def get_soup_from_url(url):
     return soup
 
 
-def get_entries(soup):
-    """Get all contributions in the timetable
-
-    Returns list of TalkEntry objects that contain info about each talk
+def get_entries(soup, use_extensions=None):
+    """Get all contributions in the timetable.
+    Optionally only get filenames that have an extension in use_extensions.
+    Returns list of TalkEntry objects that contain info about each talk.
     """
     entries = []
 
@@ -85,10 +85,11 @@ def get_entries(soup):
         if abstract_tag:
             abstract = abstract_tag.find('p').text
 
-        link_tag = entry.find('a', 'attachment')
-        if link_tag:
+        for link_tag in entry.find_all('a', 'attachment'):
             link = link_stem + link_tag['href']
-            entries.append(TalkEntry(title, speaker, affiliation, link, abstract))
+            if ((use_extensions is not None and os.path.splitext(link)[1].lstrip(".") in use_extensions)
+                or use_extensions is None):
+                entries.append(TalkEntry(title, speaker, affiliation, link, abstract))
 
     return entries
 
@@ -171,17 +172,23 @@ def download_talks(entries, download_dir, filename_generator, pause=5, skip_exis
         output_filename = os.path.join(download_dir, sanitize_filename(filename_generator(entry)))
         # replace extensions with the one from URL
         output_filename = os.path.splitext(output_filename)[0] + os.path.splitext(entry.URL)[1]
-        if not os.path.isfile(output_filename) or not skip_existing:
-            download_file(entry.URL, output_filename)
-            sleep(pause)  # be nice to the server
+        if dry_run:
+            print(entry.URL, "->", output_filename)
         else:
-            print("Skipping", entry.URL, "as already downloaded (use -f to override)")
+            if not os.path.isfile(output_filename) or not skip_existing:
+                download_file(entry.URL, output_filename)
+                sleep(pause)  # be nice to the server
+            else:
+                print("Skipping", entry.URL, "as already downloaded (use -f to override)")
 
 
 def main(in_args):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("url",
                         help="Indico event URL")
+    parser.add_argument("-e", "--only-ext",
+                        action='append',
+                        help="Only use these file extensions")
     parser.add_argument("-f", "--force",
                         help="Download file even if it already exists",
                         action='store_true')
@@ -203,7 +210,10 @@ def main(in_args):
     soup = get_soup_from_url(validate_indico_url(args.url))
     event_title = soup.title.text.replace("· Indico", "").strip()
     output_dir = args.output if args.output else event_title
-    entries = get_entries(soup)
+    # strip preceeding periods for consistency
+    if args.only_ext:
+        args.only_ext = [x.lstrip(".") for x in args.only_ext]
+    entries = get_entries(soup, args.only_ext)
     num_entries = len(entries)
     print("Found", num_entries, "talks")
     end_ind = num_entries if args.number < 0 else args.number
