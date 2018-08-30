@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 *.html
 *.pyc
+*.pdf
+*.ppt
