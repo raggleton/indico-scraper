@@ -110,14 +110,24 @@ def main(in_args):
     parser.add_argument("--pause",
                         help="Time to wait between files being downloaded (in seconds)",
                         type=int)
+    parser.add_argument("-n", "--number",
+                        help="Total number of entries to download. -1 is all (default)",
+                        type=int,
+                        default=-1)
     args = parser.parse_args(in_args)
 
     soup = get_soup_from_url(args.url)
     event_title = soup.title.text.replace("· Indico", "").strip()
     output_dir = event_title
     entries = get_entries(soup)
-    print("Found", len(entries), "talks")
-    download_talks(entries[:5], output_dir, default_filename, pause=args.pause, skip_existing=not args.force)
+    num_entries = len(entries)
+    print("Found", num_entries, "talks")
+    end_ind = num_entries if args.number < 0 else args.number
+    download_talks(entries=entries[:end_ind],
+                   download_dir=output_dir,
+                   filename_generator=default_filename,
+                   pause=args.pause,
+                   skip_existing=not args.force)
     return 0
 
 
