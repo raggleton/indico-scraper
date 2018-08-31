@@ -28,7 +28,20 @@ TalkEntry = namedtuple("TalkEntry", ["title", "speaker", "affiliation", "URL", "
 
 
 def validate_indico_url(url):
-    # "https://indico.cern.ch/event/662485/timetable/?view=standard"
+    """Construct the indico URL needed to get required timetable contents.
+    
+    eg https://indico.cern.ch/event/662485/timetable/?view=standard
+    
+    Parameters
+    ----------
+    url : str
+        Base URL to use
+    
+    Returns
+    -------
+    str
+        Correctly formatted URL
+    """
     url_info = urlparse.urlparse(url)
     path_parts = url_info.path.split("/")
     start_ind = path_parts.index("event")
@@ -46,17 +59,48 @@ def validate_indico_url(url):
     return new_url_info.geturl()
 
 
-def get_soup_from_url(url):
+def get_soup_from_url(url, parser='html.parser'):
+    """Get BeautifulSoup object from webpage at specified URL.
+    
+    Parameters
+    ----------
+    url : str
+        URL to use
+    
+    parser : str, optional
+        Parsing engine to use in beautiful soup for webpage parsing
+
+    Returns
+    -------
+    bs4.BeautifulSoup
+        Webpage represented as BeautifulSoup object
+    
+    Throws
+    ------
+    requests.HTTPError
+        If bad HTTP status code - webpage is inaccessible
+    """
     r = requests.get(url)
     r.raise_for_status()
-    soup = bs4.BeautifulSoup(r.text, 'html.parser')
+    soup = bs4.BeautifulSoup(r.text, parser)
     return soup
 
 
 def get_entries(soup, use_extensions=None):
-    """Get all contributions in the timetable.
+    """Get all contributions in the timetable from an Indico webpage.
+
     Optionally only get filenames that have an extension in use_extensions.
     Returns list of TalkEntry objects that contain info about each talk.
+
+    Parameters
+    ----------
+    soup : bs4.BeautifulSoup
+        Webpage represented as BeautifulSoup object
+
+    Returns
+    -------
+    list[TalkEntry]
+       List of talks & their metainfo, each represented as a TalkEntry object
     """
     entries = []
 
@@ -93,6 +137,18 @@ def get_entries(soup, use_extensions=None):
 
 
 def default_filename(entry):
+    """Generate output filename from talk entry info.
+    
+    Parameters
+    ----------
+    entry : TalkEntry
+        Talk information
+    
+    Returns
+    -------
+    str
+        Output base filename
+    """
     template = "{title}-{speaker}.pdf"
     return template.format(**entry._asdict())
 
@@ -148,6 +204,19 @@ def sanitize_filename(s, restricted=False, is_id=False):
 
 
 def download_file(url, output_filename):
+    """Download file from URL, save to output_filename
+    
+    Parameters
+    ----------
+    url : str
+
+    output_filename : str
+    
+    Throws
+    ------
+    requests.HTTPError
+        If bad HTTP status code - webpage is inaccessible
+    """
     print("Downloading", url, "to", output_filename)
     r = requests.get(url)
     r.raise_for_status()
@@ -156,6 +225,24 @@ def download_file(url, output_filename):
 
 
 def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True, dry_run=False):
+    """Download files for talk entries.
+    
+    Parameters
+    ----------
+    entries : list[TalkEntry]
+        List of talks to download
+    download_dir : str
+        Output directory to put downloaded files
+    filename_generator : function/lambda
+        Function to generate filename, given a TalkEntry object as the only argument
+    pause : int, optional
+        Time to wait between download calls
+    skip_existing : bool, optional
+        Skip existing files to avoid making unnecessary calls to the server
+    dry_run : bool, optional
+        Construct output dir and filenames, but do not actually download files
+    
+    """
     pause = int(pause)
     if pause < 1:
         pause = 1
@@ -179,6 +266,18 @@ def download_talks(entries, download_dir, filename_generator, pause=5, skip_exis
 
 
 def main(in_args):
+    """Main function to take input args, parse, get talk info, download talks.
+    
+    Parameters
+    ----------
+    in_args : list[str]
+        Input args to parse
+    
+    Returns
+    -------
+    int
+        Exit status code. 0 if successful, != 0 otherwise
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("url",
                         help="Indico event URL")
