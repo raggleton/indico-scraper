@@ -5,7 +5,10 @@ By default it only downloads PDFs, but one can filter for any file extensions
 
 ## Install
 
-TODO
+Git clone this repository, then inside the clonded directory do: `pip install -e .`
+
+Note that the directory `pip` installs the files to may not be on your `PATH` variable and you may have to add it manually.
+e.g. for python3 from homebrew on Mac OSX, it is `/usr/local/bin/`
 
 ## Running
 
