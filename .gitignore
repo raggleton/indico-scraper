@@ -3,3 +3,5 @@
 *.pyc
 *.pdf
 *.ppt
+*.egg-info
+.vscode
