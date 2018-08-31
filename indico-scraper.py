@@ -89,6 +89,7 @@ def get_soup_from_url(url, parser='html.parser'):
 def get_entries(soup, use_extensions=None):
     """Get all contributions in the timetable from an Indico webpage.
 
+    Actually does all the hard work parsing the HTML soup.
     Optionally only get filenames that have an extension in use_extensions.
     Returns list of TalkEntry objects that contain info about each talk.
 
