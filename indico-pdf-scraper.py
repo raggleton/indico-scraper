@@ -47,10 +47,8 @@ def validate_indico_url(url):
 
 
 def get_soup_from_url(url):
-    r = requests.get(url)  # use standard view as includes abstract info
-    if r.status_code != requests.codes.ok:
-        print("Could not get Indico page, please check URL")
-        return 1
+    r = requests.get(url)
+    r.raise_for_status()
     soup = bs4.BeautifulSoup(r.text, 'html.parser')
     return soup
 
@@ -152,11 +150,9 @@ def sanitize_filename(s, restricted=False, is_id=False):
 def download_file(url, output_filename):
     print("Downloading", url, "to", output_filename)
     r = requests.get(url)
-    if r.status_code != requests.codes.ok:
-        print("Cannot download", url, "status code:", r.status_code)
-    else:
-        with open(output_filename, 'wb') as f:
-            f.write(r.content)
+    r.raise_for_status()
+    with open(output_filename, 'wb') as f:
+        f.write(r.content)
 
 
 def download_talks(entries, download_dir, filename_generator, pause=5, skip_existing=True, dry_run=False):
