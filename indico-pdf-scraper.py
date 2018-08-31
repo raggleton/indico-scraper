@@ -186,9 +186,10 @@ def main(in_args):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("url",
                         help="Indico event URL")
-    parser.add_argument("-e", "--only-ext",
+    parser.add_argument("-e", "--ext",
                         action='append',
-                        help="Only use these file extensions")
+                        help="Only use these file extensions. Default is ['pdf']",
+                        default=['pdf'])
     parser.add_argument("-f", "--force",
                         help="Download file even if it already exists",
                         action='store_true')
@@ -211,9 +212,9 @@ def main(in_args):
     event_title = soup.title.text.replace("· Indico", "").strip()
     output_dir = args.output if args.output else event_title
     # strip preceeding periods for consistency
-    if args.only_ext:
-        args.only_ext = [x.lstrip(".") for x in args.only_ext]
-    entries = get_entries(soup, args.only_ext)
+    if args.ext:
+        args.ext = [x.lstrip(".") for x in args.ext]
+    entries = get_entries(soup, args.ext)
     num_entries = len(entries)
     print("Found", num_entries, "talks")
     end_ind = num_entries if args.number < 0 else args.number
