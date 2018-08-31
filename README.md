@@ -11,5 +11,10 @@ TODO
 
 Show options: `indico-scraper.py -h`
 
+e.g. `indico-scraper.py https://indico.cern.ch/event/662485/`
+
 **Please use responsibly.**
 
+## Current limitations
+
+Can't handle webpages behind CERN SSO. Need to pass user certs + CERN CA + ?
