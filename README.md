@@ -13,6 +13,10 @@ Show options: `indico-scraper.py -h`
 
 e.g. `indico-scraper.py https://indico.cern.ch/event/662485/`
 
+Note that you can pass it any level of the event, and it will automatically figure out the event and download everything.
+
+e.g. `indico-scraper.py https://indico.cern.ch/event/662485/contributions/3050131/attachments/1708201/2752955/rottoli_resum_Dresden2018.pdf` has the same result as the above command
+
 **Please use responsibly.**
 
 ## Current limitations
